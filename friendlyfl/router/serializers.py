@@ -3,6 +3,7 @@ from rest_framework import serializers
 from friendlyfl.router.models import Site, Project
 import uuid
 
+
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
@@ -20,6 +21,9 @@ class SiteSerializer(serializers.Serializer):
     name = serializers.CharField(required=True, allow_blank=False, max_length=100)
     description = serializers.CharField(style={'base_template': 'textarea.html'})
     uid = serializers.UUIDField(format='hex_verbose', read_only=True)
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+
     def create(self, validated_data):
         """
         Create and return a new `Site` instance, given the validated data.
@@ -38,6 +42,31 @@ class SiteSerializer(serializers.Serializer):
 
 
 class ProjectSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(required=True, allow_blank=False, max_length=100)
+    description = serializers.CharField(style={'base_template': 'textarea.html'})
+    site = serializers.PrimaryKeyRelatedField(many=False, queryset=Site.objects.all())
+    tasks = serializers.JSONField(binary=False, encoder=None)
+    created_at = serializers.DateTimeField(read_only=True)
+    updated_at = serializers.DateTimeField(read_only=True)
+
+    def create(self, validated_data):
+        """
+        Create and return a new `Project` instance, given the validated data.
+        """
+        return Project.objects.create(**validated_data)
+
+    def update(self, instance, validated_data):
+        """
+        Update and return an existing `Project` instance, given the validated data.
+        """
+        instance.name = validated_data.get('name', instance.name)
+        instance.description = validated_data.get('description', instance.code)
+        instance.updated_at = datetime.now()
+        instance.save()
+        return instance
+
     class Meta:
         model = Project
         fields = ['id', 'name', 'description', 'site', 'tasks', 'created_at', 'updated_at']
+        create_only_fields = ('site', 'tasks')

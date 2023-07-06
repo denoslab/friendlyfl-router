@@ -17,9 +17,10 @@ class Site(models.Model):
 
     def save(self, *args, **kwargs):
         """ On save, update timestamps """
+        curr_time = timezone.now()
         if not self.id:
-            self.created_at = timezone.now()
-        self.updated_at = timezone.now()
+            self.created_at = curr_time
+        self.updated_at = curr_time
         return super(Site, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -36,3 +37,17 @@ class Project(models.Model):
     tasks = models.JSONField(encoder=None, decoder=None)
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        """ On save, update timestamps """
+        curr_time = timezone.now()
+        if not self.id:
+            self.created_at = curr_time
+        self.updated_at = curr_time
+        return super(Project, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        ordering = ['created_at']
