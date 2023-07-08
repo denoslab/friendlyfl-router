@@ -59,6 +59,7 @@ class ProjectSerializer(serializers.ModelSerializer):
         style={'base_template': 'textarea.html'})
     site = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Site.objects.all())
+    batch = serializers.IntegerField(read_only=True)
     tasks = serializers.JSONField(
         binary=False, default='{}', initial='{}', encoder=None)
     created_at = serializers.DateTimeField(read_only=True)
@@ -82,7 +83,7 @@ class ProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'description', 'site',
+        fields = ['id', 'name', 'description', 'site', 'batch',
                   'tasks', 'created_at', 'updated_at']
         create_only_fields = ('site', 'tasks')
 
@@ -93,7 +94,7 @@ class ProjectParticipantSerializer(serializers.ModelSerializer):
         many=False, queryset=Site.objects.all())
     project = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Project.objects.all())
-    role = serializers.CharField(source='get_role_display')
+    role = serializers.CharField()
     notes = serializers.CharField(style={'base_template': 'textarea.html'})
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
@@ -123,6 +124,7 @@ class RunSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
     project = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Project.objects.all())
+    batch = serializers.IntegerField(read_only=True)
     participant = serializers.PrimaryKeyRelatedField(
         many=False, queryset=ProjectParticipant.objects.all())
     role = serializers.CharField(source='get_role_display', read_only=True)
@@ -152,6 +154,6 @@ class RunSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Run
-        fields = ['id', 'project', 'participant', 'role',
+        fields = ['id', 'project', 'batch', 'participant', 'role',
                   'status', 'logs', 'artifacts', 'created_at', 'updated_at']
         create_only_fields = ('project', 'participant', 'role')
