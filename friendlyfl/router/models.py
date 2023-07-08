@@ -112,6 +112,31 @@ class Run(models.Model):
         FAILED = 6
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    participant = models.ForeignKey(ProjectParticipant, on_delete=models.CASCADE)
+    role = models.CharField(
+        max_length=2,
+        choices=ProjectParticipantRole.choices,
+        default=ProjectParticipantRole.PARTICIPANT,
+    )
+    status = models.IntegerField(choices=RunStatus.choices, default=RunStatus.STANDBY)
+    logs = models.TextField()
+    artifacts = models.JSONField(encoder=None, decoder=None)
+    created_at = models.DateTimeField(editable=False)
+    updated_at = models.DateTimeField()
 
+    def save(self, *args, **kwargs):
+        """ On save, update timestamps """
+        curr_time = timezone.now()
+        if not self.id:
+            # copy the participant's role to the new record
+            self.role = self.participant.role
+            self.created_at = curr_time
+        self.updated_at = curr_time
+        return super(Run, self).save(*args, **kwargs)
 
+    def __str__(self):
+        return self.project + '-' + self.id
+
+    class Meta:
+        ordering = ['created_at']
 
