@@ -120,12 +120,12 @@ Todo
 #### With Docker
 ##### Build docker image
 ```shell
-docker build -t friendlyfl:latest .
+docker build -t friendlyfl-router:latest .
 ```
 
 ##### Start
 ```shell
-docker run -it -p 8000:8000 docker.io/library/friendlyfl:latest
+docker run -it -p 8000:8000 docker.io/library/friendlyfl-router:latest
 ```
 
 #### Without Docker
@@ -153,3 +153,9 @@ python3 manage.py runserver
 
 ##### De-active virtual environment
 Type `deactivate` in your terminal
+
+#### Code Format
+Run the following command to format python code in friendlyfl-router directory
+```shell
+autopep8 --exclude='*/migrations/*' --in-place --recursive ./friendlyfl/
+```
