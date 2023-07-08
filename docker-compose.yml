@@ -1,14 +1,10 @@
 version: '3.9'
 
 services:
-  friendlyfl:
+  friendlyfl-router:
     build:
       context: .
-      dockerfile: /Dockerfile
-    image: friendlyfl
-    command: poetry run python3 manage.py runserver 0.0.0.0:8000
-    volumes:
-      - .:/app
+    image: friendlyfl-router
     ports:
       - '8000:8000'
     env_file:
@@ -21,4 +17,8 @@ services:
     ports:
       - 5432:5432
     environment:
-      POSTGRES_PASSWORD: changeme
+      POSTGRES_USERNAME: postgres
+      POSTGRES_PASSWORD: UCalgary123
+
+volumes:
+  postgres_data: {}
