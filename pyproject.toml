@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "friendlyfl"
+name = "friendlyfl-router"
 version = "0.1.0"
 description = "A federated learning (FL) system that is friendly to users with diverse backgrounds, for instance, in healthcare."
 authors = ["Your Name <you@example.com>"]

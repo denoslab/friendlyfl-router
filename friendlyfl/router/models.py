@@ -15,9 +15,12 @@ class Site(models.Model):
 
     name = models.CharField(max_length=100, blank=False)
     description = models.TextField()
-    uid = models.UUIDField(primary_key=False, default=uuid.uuid4, editable=False)
-    owner = models.ForeignKey('auth.User', default='admin', related_name='owner', on_delete=models.CASCADE)
-    status = models.IntegerField(choices=SiteStatus.choices, default=SiteStatus.DISCONNECTED)
+    uid = models.UUIDField(
+        primary_key=False, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(
+        'auth.User', default='admin', related_name='owner', on_delete=models.CASCADE)
+    status = models.IntegerField(
+        choices=SiteStatus.choices, default=SiteStatus.DISCONNECTED)
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
 
@@ -112,6 +115,3 @@ class Run(models.Model):
         FAILED = 6
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-
-
-
