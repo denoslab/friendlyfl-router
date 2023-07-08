@@ -15,9 +15,12 @@ class Site(models.Model):
 
     name = models.CharField(max_length=100, blank=False)
     description = models.TextField()
-    uid = models.UUIDField(primary_key=False, default=uuid.uuid4, editable=False)
-    owner = models.ForeignKey('auth.User', default='admin', related_name='owner', on_delete=models.CASCADE)
-    status = models.IntegerField(choices=SiteStatus.choices, default=SiteStatus.DISCONNECTED)
+    uid = models.UUIDField(
+        primary_key=False, default=uuid.uuid4, editable=False)
+    owner = models.ForeignKey(
+        'auth.User', default='admin', related_name='owner', on_delete=models.CASCADE)
+    status = models.IntegerField(
+        choices=SiteStatus.choices, default=SiteStatus.DISCONNECTED)
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
 
@@ -112,13 +115,15 @@ class Run(models.Model):
         FAILED = 6
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
-    participant = models.ForeignKey(ProjectParticipant, on_delete=models.CASCADE)
+    participant = models.ForeignKey(
+        ProjectParticipant, on_delete=models.CASCADE)
     role = models.CharField(
         max_length=2,
         choices=ProjectParticipantRole.choices,
         default=ProjectParticipantRole.PARTICIPANT,
     )
-    status = models.IntegerField(choices=RunStatus.choices, default=RunStatus.STANDBY)
+    status = models.IntegerField(
+        choices=RunStatus.choices, default=RunStatus.STANDBY)
     logs = models.TextField()
     artifacts = models.JSONField(encoder=None, decoder=None)
     created_at = models.DateTimeField(editable=False)
@@ -139,4 +144,3 @@ class Run(models.Model):
 
     class Meta:
         ordering = ['created_at']
-
