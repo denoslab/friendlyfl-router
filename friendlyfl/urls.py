@@ -23,6 +23,7 @@ router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'sites', views.SiteViewSet, basename="site")
 router.register(r'projects', views.ProjectViewSet, basename="project")
+router.register(r'project-participants', views.ProjectParticipantViewSet, basename="project-participant")
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.

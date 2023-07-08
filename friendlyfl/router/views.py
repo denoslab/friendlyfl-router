@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User, Group
-from friendlyfl.router.models import Site, Project
+from friendlyfl.router.models import Site, Project, ProjectParticipant
 from friendlyfl.router.serializers import UserSerializer, GroupSerializer
-from friendlyfl.router.serializers import SiteSerializer, ProjectSerializer
+from friendlyfl.router.serializers import SiteSerializer, ProjectSerializer, ProjectParticipantSerializer
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework import status
@@ -47,6 +47,19 @@ class ProjectViewSet(viewsets.ModelViewSet):
     """
     queryset = Project.objects.all()
     serializer_class = ProjectSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+
+class ProjectParticipantViewSet(viewsets.ModelViewSet):
+    """
+    This viewset automatically provides `list`, `create`, `retrieve`,
+    `update` and `destroy` actions.
+    """
+    queryset = ProjectParticipant.objects.all()
+    serializer_class = ProjectParticipantSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def perform_create(self, serializer):

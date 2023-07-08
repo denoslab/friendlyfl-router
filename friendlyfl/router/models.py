@@ -2,16 +2,22 @@ from django.db import models
 from django.contrib.auth.models import User, Group
 from django.utils import timezone
 import uuid
+from django.utils.translation import gettext_lazy as _
 
 
 class Site(models.Model):
     """
     A site running local FL tasks
     """
+    class SiteStatus(models.IntegerChoices):
+        DISCONNECTED = 0
+        CONNECTED = 1
+
     name = models.CharField(max_length=100, blank=False)
     description = models.TextField()
     uid = models.UUIDField(primary_key=False, default=uuid.uuid4, editable=False)
     owner = models.ForeignKey('auth.User', default='admin', related_name='owner', on_delete=models.CASCADE)
+    status = models.IntegerField(choices=SiteStatus.choices, default=SiteStatus.DISCONNECTED)
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
 
@@ -21,6 +27,7 @@ class Site(models.Model):
         if not self.id:
             self.created_at = curr_time
         self.updated_at = curr_time
+        self.status = Site.SiteStatus.CONNECTED
         return super(Site, self).save(*args, **kwargs)
 
     def __str__(self):
@@ -31,6 +38,9 @@ class Site(models.Model):
 
 
 class Project(models.Model):
+    """
+        A project for a group of FL tasks defined.
+    """
     name = models.CharField(max_length=100, blank=True, default='')
     description = models.TextField()
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
@@ -51,3 +61,57 @@ class Project(models.Model):
 
     class Meta:
         ordering = ['created_at']
+
+
+class ProjectParticipant(models.Model):
+    """
+    Participants of a project and their roles.
+    """
+
+    class ProjectParticipantRole(models.TextChoices):
+        COORDINATOR = "CO", _("coordinator")
+        PARTICIPANT = "PA", _("participant")
+
+    site = models.ForeignKey(Site, on_delete=models.CASCADE)
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    role = models.CharField(
+        max_length=2,
+        choices=ProjectParticipantRole.choices,
+        default=ProjectParticipantRole.PARTICIPANT,
+    )
+    notes = models.TextField()
+    created_at = models.DateTimeField(editable=False)
+    updated_at = models.DateTimeField()
+
+    def save(self, *args, **kwargs):
+        """ On save, update timestamps """
+        curr_time = timezone.now()
+        if not self.id:
+            self.created_at = curr_time
+        self.updated_at = curr_time
+        return super(Project, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return self.project + '-' + site.name
+
+    class Meta:
+        ordering = ['created_at']
+
+
+class Run(models.Model):
+    """
+    Runs of a project.
+    """
+    class RunStatus(models.IntegerChoices):
+        STANDBY = 0
+        PREPARING = 1
+        RUNNING = 2
+        PENDING_SUCCESS = 3
+        PENDING_FAILED = 4
+        SUCCESS = 5
+        FAILED = 6
+
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+
+
+
