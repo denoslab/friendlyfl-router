@@ -37,7 +37,7 @@ class Site(models.Model):
         return self.name
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ['id']
 
 
 class Project(models.Model):
@@ -63,7 +63,7 @@ class Project(models.Model):
         return self.name
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ['id']
 
 
 class ProjectParticipant(models.Model):
@@ -98,7 +98,7 @@ class ProjectParticipant(models.Model):
         return self.project + '-' + site.name
 
     class Meta:
-        ordering = ['created_at']
+        ordering = ['id']
 
 
 class Run(models.Model):
@@ -119,13 +119,13 @@ class Run(models.Model):
         ProjectParticipant, on_delete=models.CASCADE)
     role = models.CharField(
         max_length=2,
-        choices=ProjectParticipantRole.choices,
-        default=ProjectParticipantRole.PARTICIPANT,
+        choices=ProjectParticipant.ProjectParticipantRole.choices,
+        default=ProjectParticipant.ProjectParticipantRole.PARTICIPANT,
     )
     status = models.IntegerField(
         choices=RunStatus.choices, default=RunStatus.STANDBY)
     logs = models.TextField()
-    artifacts = models.JSONField(encoder=None, decoder=None)
+    artifacts = models.JSONField(encoder=None, decoder=None, default='{}')
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
 
@@ -143,5 +143,4 @@ class Run(models.Model):
         return self.project + '-' + self.id
 
     class Meta:
-        ordering = ['created_at']
-
+        ordering = ['id']
