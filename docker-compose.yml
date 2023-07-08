@@ -1,0 +1,24 @@
+version: '3.9'
+
+services:
+  friendlyfl:
+    build:
+      context: .
+      dockerfile: /Dockerfile
+    image: friendlyfl
+    command: poetry run python3 manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+    ports:
+      - '8000:8000'
+    env_file:
+      - .env
+
+  postgres:
+    image: postgres:12.9
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_PASSWORD: changeme
