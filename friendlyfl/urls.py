@@ -15,22 +15,25 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import include, path
+from django.views.generic import RedirectView
 from rest_framework import routers
 from friendlyfl.router import views
 
-router = routers.DefaultRouter()
-router.register(r'users', views.UserViewSet)
-router.register(r'groups', views.GroupViewSet)
-router.register(r'sites', views.SiteViewSet, basename="site")
-router.register(r'projects', views.ProjectViewSet, basename="project")
-router.register(r'project-participants',
-                views.ProjectParticipantViewSet, basename="project-participant")
-router.register(r'runs',
-                views.RunViewSet, basename="run")
+router_v1 = routers.DefaultRouter()
+router_v1.register(r'users', views.UserViewSet)
+router_v1.register(r'groups', views.GroupViewSet)
+router_v1.register(r'sites', views.SiteViewSet, basename="site")
+router_v1.register(r'projects', views.ProjectViewSet, basename="project")
+router_v1.register(r'project-participants',
+                   views.ProjectParticipantViewSet, basename="project-participant")
+router_v1.register(r'runs',
+                   views.RunViewSet, basename="run")
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
 urlpatterns = [
-    path('', include(router.urls)),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework'))
+    path('', RedirectView.as_view(url='friendlyfl/api/v1/')),
+    path('friendlyfl/api/v1/', include(router_v1.urls)),
+    path('friendlyfl/api-auth/',
+         include('rest_framework.urls', namespace='rest_framework'))
 ]
