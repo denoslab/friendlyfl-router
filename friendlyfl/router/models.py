@@ -14,7 +14,7 @@ class Site(models.Model):
         DISCONNECTED = 0
         CONNECTED = 1
 
-    name = models.CharField(max_length=100, blank=False)
+    name = models.CharField(max_length=100, unique=True, blank=False)
     description = models.TextField()
     uid = models.UUIDField(
         primary_key=False, default=uuid.uuid4, editable=False)
@@ -98,7 +98,7 @@ class ProjectParticipant(models.Model):
         return super(ProjectParticipant, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.project + '-' + site.name
+        return self.project + '-' + self.site.name
 
     class Meta:
         ordering = ['id']
@@ -143,7 +143,7 @@ class Run(models.Model):
             self.role = self.participant.role
             self.batch = self.project.batch
             self.created_at = curr_time
-            if ProjectParticipant.Role.COORDINATOR == role:
+            if ProjectParticipant.Role.COORDINATOR == self.role:
                 # TODO: need to increase project batch
                 pass
         self.updated_at = curr_time

@@ -159,3 +159,15 @@ Run the following command to format python code in friendlyfl-router directory
 ```shell
 autopep8 --exclude='*/migrations/*' --in-place --recursive ./friendlyfl/
 ```
+
+#### Change Dependency
+To add dependency
+```shell
+poetry add xxxx
+```
+append `--group=dev` if you want to add it in as a development dependency.
+
+To remove dependency
+```shell
+poetry remove xxx
+```

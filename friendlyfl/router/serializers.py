@@ -1,7 +1,13 @@
+from datetime import datetime
+
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 from friendlyfl.router.models import Site, Project, ProjectParticipant, Run
 import uuid
+
+from rest_framework.validators import UniqueValidator
+
+from friendlyfl.router.models import Site, Project, ProjectParticipant
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -19,7 +25,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
 class SiteSerializer(serializers.Serializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(
-        required=True, allow_blank=False, max_length=100)
+        required=True, allow_blank=False, max_length=100, validators=[UniqueValidator(queryset=Site.objects.all())])
     description = serializers.CharField(
         style={'base_template': 'textarea.html'})
     uid = serializers.UUIDField(format='hex_verbose', read_only=True)
@@ -41,6 +47,7 @@ class SiteSerializer(serializers.Serializer):
         instance.description = validated_data.get(
             'description', instance.description)
         instance.status = validated_data.get('status', instance.status)
+        instance.updated_at = datetime.now()
         instance.save()
         return instance
 
