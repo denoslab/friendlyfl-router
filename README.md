@@ -75,6 +75,9 @@ Private key exchanges between sites will be done securely.
 
 ##### Prerequisites
 
+###### Docker
+We are using [docker](https://docs.docker.com/engine/install/) and [docker-compose](https://docs.docker.com/compose/install/) to manage our development environment. Please refer to the installation pages.
+
 ###### brew
 We are going to use [brew](https://brew.sh/) to install some tools. If you don't have brew installed on your Mac, run the following command:
 ```shell
@@ -128,8 +131,20 @@ docker build -t friendlyfl-router:latest .
 docker run -it -p 8000:8000 docker.io/library/friendlyfl-router:latest
 ```
 
-#### Without Docker
+#### Docker Compose
+To start
+```shell
+docker-compose up -d
+```
 
+To Stop
+```shell
+docker-compose stop
+docker-compose down
+```
+
+
+#### Without Docker
 ##### Create a virtual environment
 ```shell
 python3 -m venv venv
@@ -153,6 +168,21 @@ python3 manage.py runserver
 
 ##### De-active virtual environment
 Type `deactivate` in your terminal
+
+
+#### Database
+If it is the first time starting, you need to create the database in postgres. Either go with command line or UI. 
+You may need to restart the service after the database been created.
+
+#### The First User
+You may need to create the first user if it is the first time starting. 
+```shell
+python3 manage.py createsuperuser
+```
+or inside docker container
+```shell
+poetry run python3 manage.py createsuperuser
+```
 
 #### Code Format
 Run the following command to format python code in friendlyfl-router directory
