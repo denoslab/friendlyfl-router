@@ -182,7 +182,10 @@ python3 manage.py createsuperuser
 ```
 or inside docker container
 ```shell
+docker exec -it <friendlyfl-router-container-id> bash
+poetry run python3 manage.py migrate
 poetry run python3 manage.py createsuperuser
+docker-compose restart
 ```
 
 #### Code Format
