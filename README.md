@@ -172,6 +172,7 @@ Type `deactivate` in your terminal
 
 #### Database
 If it is the first time starting, you need to create the database in postgres. Either go with command line or UI. 
+Current database name is **friendlyfl-router**
 You may need to restart the service after the database been created.
 
 #### The First User
@@ -200,4 +201,28 @@ append `--group=dev` if you want to add it in as a development dependency.
 To remove dependency
 ```shell
 poetry remove xxx
+```
+### Recommended Quick Start (using docker-compose)
+
+1. Build images
+
+```shell
+docker-compose build
+```
+2. Run fl and postgres services
+
+```shell
+docker-compose up -d
+```
+3. Create a db with name : **friendlyfl-router** for first init
+
+    Suggest using **Pycharm UI**, and you can find db details in **.env** file for connection
+
+
+4. open url: http://localhost:8000/friendlyfl/api/v1/
+
+
+5. Stop services
+ ```shell
+docker-compose stop
 ```
