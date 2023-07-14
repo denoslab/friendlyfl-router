@@ -3,6 +3,7 @@ from django.contrib.auth.models import User, Group
 from django.utils import timezone
 import uuid
 from django.utils.translation import gettext_lazy as _
+from django_fsm import transition, FSMField
 
 
 class Site(models.Model):
@@ -98,7 +99,7 @@ class ProjectParticipant(models.Model):
         return super(ProjectParticipant, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.project + '-' + self.site.name
+        return self.project.name + '-' + self.site.name
 
     class Meta:
         ordering = ['id']
@@ -110,14 +111,14 @@ class Run(models.Model):
     Runs of a project.
     """
 
-    class RunStatus(models.IntegerChoices):
-        STANDBY = 0
-        PREPARING = 1
-        RUNNING = 2
-        PENDING_SUCCESS = 3
-        PENDING_FAILED = 4
-        SUCCESS = 5
-        FAILED = 6
+    class RunStatus(models.TextChoices):
+        STANDBY = 'STANDBY'
+        PREPARING = 'PREPARING'
+        RUNNING = 'RUNNING'
+        PENDING_SUCCESS = 'PENDING_SUCCESS'
+        PENDING_FAILED = 'PENDING_FAILED'
+        SUCCESS = 'SUCCESS'
+        FAILED = 'FAILED'
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     participant = models.ForeignKey(
@@ -128,9 +129,9 @@ class Run(models.Model):
         choices=ProjectParticipant.Role.choices,
         default=ProjectParticipant.Role.PARTICIPANT,
     )
-    status = models.IntegerField(
-        choices=RunStatus.choices, default=RunStatus.STANDBY)
-    logs = models.TextField()
+    status = FSMField(
+        choices=RunStatus.choices, default=RunStatus.STANDBY, protected=True)
+    logs = models.JSONField(encoder=None, decoder=None, default='{}')
     artifacts = models.JSONField(encoder=None, decoder=None, default='{}')
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
@@ -141,16 +142,41 @@ class Run(models.Model):
         if not self.id:
             # copy the participant's role to the new record
             self.role = self.participant.role
-            self.batch = self.project.batch
             self.created_at = curr_time
             if ProjectParticipant.Role.COORDINATOR == self.role:
-                # TODO: need to increase project batch
+                self.project.batch += 1
                 pass
+            self.batch = self.project.batch
         self.updated_at = curr_time
+        self.project.save()
         return super(Run, self).save(*args, **kwargs)
 
     def __str__(self):
-        return self.project + '-' + self.id
+        return self.project.name + '-' + self.batch + '-' + self.id
+
+    @transition(field=status, source=RunStatus.STANDBY, target=RunStatus.PREPARING)
+    def preparing(self):
+        print(self.status)
+
+    @transition(field=status, source=RunStatus.PREPARING, target=RunStatus.RUNNING)
+    def running(self):
+        print(self.status)
+
+    @transition(field=status, source=RunStatus.RUNNING, target=RunStatus.PENDING_SUCCESS)
+    def pending_success(self):
+        print(self.status)
+
+    @transition(field=status, source=[RunStatus.RUNNING, RunStatus.PREPARING], target=RunStatus.PENDING_FAILED)
+    def pending_failed(self):
+        print(self.status)
+
+    @transition(field=status, source=RunStatus.PENDING_SUCCESS, target=RunStatus.SUCCESS)
+    def success(self):
+        print(self.status)
+
+    @transition(field=status, source=RunStatus.PENDING_FAILED, target=RunStatus.FAILED)
+    def failed(self):
+        print(self.status)
 
     class Meta:
         ordering = ['id']

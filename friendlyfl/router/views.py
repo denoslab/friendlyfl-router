@@ -5,7 +5,7 @@ from friendlyfl.router.serializers import SiteSerializer, ProjectSerializer, Pro
 from rest_framework import viewsets
 from rest_framework import permissions
 from rest_framework import status
-from rest_framework.decorators import api_view
+from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 
 
@@ -77,3 +77,27 @@ class RunViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save()
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        data = {
+            "log": request.PUT.get('log', None),
+            "artifacts": request.PUT.get('artifacts', None),
+        }
+        serializer = self.serializer_class(
+            instance=instance, data=data, partial=True)
+        serializer.save()
+
+    @action(detail=True, methods=['PUT'])
+    def update_status(self, request, pk=None):
+        instance = self.get_object()
+        data = {
+            "status": request.data.get('status', None),
+        }
+        serializer = self.serializer_class(
+            instance=instance, data=data, partial=True)
+        if serializer.is_valid():
+            serializer.update_status(instance, data)
+            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
