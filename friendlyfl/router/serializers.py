@@ -135,8 +135,9 @@ class RunSerializer(serializers.ModelSerializer):
     participant = serializers.PrimaryKeyRelatedField(
         many=False, queryset=ProjectParticipant.objects.all())
     role = serializers.CharField(source='get_role_display', read_only=True)
-    status = serializers.IntegerField(source='get_status_display')
-    logs = serializers.CharField(style={'base_template': 'textarea.html'})
+    status = serializers.CharField()
+    logs = serializers.JSONField(
+        binary=False, default='{}', initial='{}', encoder=None)
     artifacts = serializers.JSONField(
         binary=False, default='{}', initial='{}', encoder=None)
     created_at = serializers.DateTimeField(read_only=True)
@@ -150,14 +151,22 @@ class RunSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         """
-        Update and return an existing `ProjectParticipant` instance, given the validated data.
+        Update and return an existing `Run` instance, given the validated data.
         """
-        instance.status = validated_data.get('status', instance.status)
         instance.logs = validated_data.get('logs', instance.logs)
         instance.artifacts = validated_data.get(
             'artifacts', instance.artifacts)
         instance.save()
         return instance
+
+    def update_status(self, instance, validated_data):
+        status = validated_data.get('status', instance.status)
+        match status:
+            case Run.RunStatus.PREPARING:
+                instance.preparing()
+            case Run.RunStatus.RUNNING:
+                instance.running()
+        instance.save()
 
     class Meta:
         model = Run
