@@ -34,6 +34,8 @@ router_v1.register(r'runs',
 urlpatterns = [
     path('', RedirectView.as_view(url='friendlyfl/api/v1/')),
     path('friendlyfl/api/v1/', include(router_v1.urls)),
+    path('friendlyfl/api/v1/runs',
+         views.BulkCreateRunAPIView.as_view(), name='runs'),
     path('friendlyfl/api-auth/',
          include('rest_framework.urls', namespace='rest_framework'))
 ]

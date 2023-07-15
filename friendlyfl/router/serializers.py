@@ -176,6 +176,9 @@ class RunSerializer(serializers.ModelSerializer):
         """
         return Run.objects.create(**validated_data)
 
+    def bulk_create(self, validated_data):
+        return Run.objects.bulk_create([Run(**item) for item in validated_data], batch_size=100)
+
     def update(self, instance, validated_data):
         """
         Update and return an existing `Run` instance, given the validated data.
@@ -188,11 +191,7 @@ class RunSerializer(serializers.ModelSerializer):
 
     def update_status(self, instance, validated_data):
         status = validated_data.get('status', instance.status)
-        match status:
-            case Run.RunStatus.PREPARING:
-                instance.preparing()
-            case Run.RunStatus.RUNNING:
-                instance.running()
+        instance = Run.update_status(instance, status)
         instance.save()
 
     class Meta:

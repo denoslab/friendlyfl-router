@@ -145,14 +145,31 @@ class Run(models.Model):
             self.created_at = curr_time
             if ProjectParticipant.Role.COORDINATOR == self.role:
                 self.project.batch += 1
-                pass
+                self.project.save()
             self.batch = self.project.batch
+            self.status = Run.RunStatus.STANDBY
         self.updated_at = curr_time
-        self.project.save()
         return super(Run, self).save(*args, **kwargs)
 
     def __str__(self):
         return self.project.name + '-' + self.batch + '-' + self.id
+
+    @staticmethod
+    def update_status(instance, status):
+        match status:
+            case Run.RunStatus.PREPARING:
+                instance.preparing()
+            case Run.RunStatus.RUNNING:
+                instance.running()
+            case Run.RunStatus.PENDING_SUCCESS:
+                instance.pending_success()
+            case Run.RunStatus.PENDING_FAILED:
+                instance.pending_failed()
+            case Run.RunStatus.SUCCESS:
+                instance.success()
+            case Run.RunStatus.FAILED:
+                instance.failed()
+        return instance
 
     @transition(field=status, source=RunStatus.STANDBY, target=RunStatus.PREPARING)
     def preparing(self):
