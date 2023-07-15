@@ -88,6 +88,33 @@ class ProjectSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+    def create_with_participant(self, validated_data):
+        """
+        check if project name exist, if not exist, will create a new project record current site is CO, otherwise is PA
+        """
+
+        project_name = validated_data.get("name")
+        site_id = validated_data.get("site")
+        description = validated_data.get("description")
+        tasks = validated_data.get("tasks")
+
+        project = Project.objects.filter(name=project_name).first()
+        role = ProjectParticipant.Role.PARTICIPANT
+
+        site = Site.objects.get(id=site_id)
+
+        if not project:
+            project = Project.objects.create(
+                site=site,
+                name=project_name,
+                description=description,
+                tasks=tasks
+            )
+            role = ProjectParticipant.Role.COORDINATOR
+
+        ProjectParticipant.objects.get_or_create(
+            site=site, project=project, defaults={'site': site, 'project': project, 'role': role})
+
     class Meta:
         model = Project
         fields = ['id', 'name', 'description', 'site', 'batch',
