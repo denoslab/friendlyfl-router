@@ -8,6 +8,7 @@ import uuid
 from rest_framework.validators import UniqueValidator
 
 from friendlyfl.router.models import Site, Project, ProjectParticipant
+from django.db import transaction, DatabaseError
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -103,17 +104,22 @@ class ProjectSerializer(serializers.ModelSerializer):
 
         site = Site.objects.get(id=site_id)
 
-        if not project:
-            project = Project.objects.create(
-                site=site,
-                name=project_name,
-                description=description,
-                tasks=tasks
-            )
-            role = ProjectParticipant.Role.COORDINATOR
-
-        ProjectParticipant.objects.get_or_create(
-            site=site, project=project, defaults={'site': site, 'project': project, 'role': role})
+        try:
+            with transaction.atomic():
+                if not project:
+                    project = Project.objects.create(
+                        site=site,
+                        name=project_name,
+                        description=description,
+                        tasks=tasks
+                    )
+                    role = ProjectParticipant.Role.COORDINATOR
+                raise DatabaseError
+                ProjectParticipant.objects.get_or_create(
+                    site=site, project=project, defaults={'site': site, 'project': project, 'role': role})
+        except DatabaseError:
+            raise serializers.ValidationError(
+                'Encountered issue while creating project {}'.format(project_name))
 
     class Meta:
         model = Project
