@@ -17,8 +17,7 @@ class Site(models.Model):
 
     name = models.CharField(max_length=100, unique=True, blank=False)
     description = models.TextField()
-    uid = models.UUIDField(
-        primary_key=False, default=uuid.uuid4, editable=False)
+    uid = models.UUIDField(primary_key=False)
     owner = models.ForeignKey(
         'auth.User', default='admin', related_name='owner', on_delete=models.CASCADE)
     status = models.IntegerField(

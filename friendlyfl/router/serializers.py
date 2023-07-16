@@ -29,7 +29,7 @@ class SiteSerializer(serializers.Serializer):
         required=True, allow_blank=False, max_length=100, validators=[UniqueValidator(queryset=Site.objects.all())])
     description = serializers.CharField(
         style={'base_template': 'textarea.html'})
-    uid = serializers.UUIDField(format='hex_verbose', read_only=True)
+    uid = serializers.UUIDField(format='hex_verbose')
     status = serializers.CharField(source='get_status_display', read_only=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
