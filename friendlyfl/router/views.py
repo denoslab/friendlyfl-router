@@ -5,9 +5,33 @@ from friendlyfl.router.serializers import SiteSerializer, ProjectSerializer, Pro
 from rest_framework import viewsets, mixins, generics
 from rest_framework import permissions
 from rest_framework import status
+
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
 from django.utils import timezone
+from uuid import UUID
+
+
+def validate_uuid4(uuid_string):
+
+    """
+    Validate that a UUID string is in
+    fact a valid uuid4.
+    Happily, the uuid module does the actual
+    checking for us.
+    It is vital that the 'version' kwarg be passed
+    to the UUID() call, otherwise any 32-character
+    hex string is considered valid.
+    """
+
+    try:
+        val = UUID(uuid_string, version=4)
+    except ValueError:
+        # If it's a value error, then the string
+        # is not a valid hex code for a UUID.
+        return False
+
+    return True
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -39,6 +63,18 @@ class SiteViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+    @action(detail=False, methods=['GET'], url_path='lookup')
+    def lookup_site_uid(self, request):
+        """
+        Look up a site by its uid.
+        """
+        uid_param = request.GET.get('uid', None)
+        if not validate_uuid4(uid_param):
+            uid_param = None
+        queryset = Site.objects.filter(uid=uid_param)
+        serializer = SiteSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ProjectViewSet(viewsets.ModelViewSet):
