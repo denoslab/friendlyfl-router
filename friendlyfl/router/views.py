@@ -8,12 +8,12 @@ from rest_framework import status
 
 from rest_framework.decorators import action, api_view
 from rest_framework.response import Response
+from django.db import transaction, DatabaseError
 from django.utils import timezone
 from uuid import UUID
 
 
 def validate_uuid4(uuid_string):
-
     """
     Validate that a UUID string is in
     fact a valid uuid4.
@@ -71,10 +71,34 @@ class SiteViewSet(viewsets.ModelViewSet):
         """
         uid_param = request.GET.get('uid', None)
         if not validate_uuid4(uid_param):
-            uid_param = None
-        queryset = Site.objects.filter(uid=uid_param)
-        serializer = SiteSerializer(queryset, many=True)
+            return Response("Invalid uid", status=status.HTTP_400_BAD_REQUEST)
+        queryset = Site.objects.get(uid=uid_param)
+        serializer = SiteSerializer(queryset)
         return Response(serializer.data)
+
+    @action(detail=False, methods=['POST'], url_path='heartbeat')
+    def heartbeat(self, request):
+        """
+        Sync heartbeat
+        """
+
+        uid_param = request.data.get('uid', None)
+        status_param = request.data.get('status', None)
+
+        if not validate_uuid4(uid_param):
+            return Response("Invalid uid", status=status.HTTP_400_BAD_REQUEST)
+
+        if not status_param in Site.SiteStatus:
+            return Response("Status not supported", status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                site = Site.objects.select_for_update().get(uid=uid_param)
+                site.status = status_param
+                site.save()
+            return Response(status=status.HTTP_202_ACCEPTED)
+        except DatabaseError:
+            return Response(status=status.HTTP_422_UNPROCESSABLE_ENTITY)
 
 
 class ProjectViewSet(viewsets.ModelViewSet):

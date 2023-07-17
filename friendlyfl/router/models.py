@@ -30,8 +30,8 @@ class Site(models.Model):
         curr_time = timezone.now()
         if not self.id:
             self.created_at = curr_time
+            self.status = Site.SiteStatus.CONNECTED
         self.updated_at = curr_time
-        self.status = Site.SiteStatus.CONNECTED
         return super(Site, self).save(*args, **kwargs)
 
     def __str__(self):
