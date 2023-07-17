@@ -101,7 +101,16 @@ pyenv versions
 
 We are going to be using Python version 3.10.10, so let's get that installed.
 ```shell
+# install the python version to OS
 pyenv install 3.10.10
+# specify python version to this project
+pyenv local 3.10.10
+# verify python version in pyenv
+pyenv exec python -V
+# create virtual env with this python version
+pyenv exec python -m venv .venv
+# active this virtual env
+source .venv/bin/activate
 ```
 
 ###### Poetry
@@ -147,8 +156,16 @@ docker-compose down
 #### Without Docker
 ##### Create a virtual environment
 ```shell
-python3 -m venv venv
-source venv/bin/activate
+# install the python version to OS
+pyenv install 3.10.10
+# specify python version to this project
+pyenv local 3.10.10
+# verify python version in pyenv
+pyenv exec python -V
+# create virtual env with this python version
+pyenv exec python -m venv .venv
+# active this virtual env
+source .venv/bin/activate
 ```
 
 ##### Install dependencies
