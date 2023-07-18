@@ -183,6 +183,15 @@ python3 manage.py migrate
 python3 manage.py runserver
 ```
 
+##### To run a job
+```shell
+python3 manage.py runjob ${job_name}
+```
+Example:
+```shell
+python3 manage.py runjob check_site_status
+```
+
 ##### De-active virtual environment
 Type `deactivate` in your terminal
 
