@@ -65,7 +65,7 @@ class SiteViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     @action(detail=False, methods=['GET'], url_path='lookup')
-    def lookup_site_uid(self, request):
+    def lookup_sites_by_uid(self, request):
         """
         Look up a site by its uid.
         """
@@ -94,6 +94,17 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['GET'], url_path='lookup')
+    def lookup_projects_by_site_id(self, request):
+        """
+        Look up ProjectParticipant by site ID.
+        All projects this site is involved will be returned.
+        """
+        site_id_param = request.GET.get('site_id', None)
+        queryset = ProjectParticipant.objects.filter(site=site_id_param)
+        serializer = ProjectParticipantSerializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 class ProjectParticipantViewSet(viewsets.ModelViewSet):

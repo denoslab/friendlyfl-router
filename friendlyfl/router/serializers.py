@@ -114,7 +114,6 @@ class ProjectSerializer(serializers.ModelSerializer):
                         tasks=tasks
                     )
                     role = ProjectParticipant.Role.COORDINATOR
-                raise DatabaseError
                 ProjectParticipant.objects.get_or_create(
                     site=site, project=project, defaults={'site': site, 'project': project, 'role': role})
         except DatabaseError:
@@ -130,11 +129,9 @@ class ProjectSerializer(serializers.ModelSerializer):
 
 class ProjectParticipantSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
-    site = serializers.PrimaryKeyRelatedField(
-        many=False, queryset=Site.objects.all())
-    project = serializers.PrimaryKeyRelatedField(
-        many=False, queryset=Project.objects.all())
-    role = serializers.CharField()
+    site = SiteSerializer(many=False)
+    project = ProjectSerializer(many=False)
+    role = serializers.CharField(source='get_role_display', read_only=True)
     notes = serializers.CharField(style={'base_template': 'textarea.html'})
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
