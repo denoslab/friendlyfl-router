@@ -12,6 +12,7 @@ djangorestframework = "^3.14.0"
 python-dotenv = "^1.0.0"
 psycopg2-binary = "^2.9.6"
 django-fsm = "^2.8.1"
+django-extensions = "^3.2.3"
 
 
 [tool.poetry.group.dev.dependencies]
