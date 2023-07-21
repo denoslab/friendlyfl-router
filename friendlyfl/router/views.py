@@ -1,7 +1,9 @@
 from django.contrib.auth.models import User, Group
 from friendlyfl.router.models import Site, Project, ProjectParticipant, Run
 from friendlyfl.router.serializers import UserSerializer, GroupSerializer
-from friendlyfl.router.serializers import SiteSerializer, ProjectSerializer, ProjectParticipantSerializer, RunSerializer
+from friendlyfl.router.serializers import SiteSerializer, \
+    ProjectSerializer, ProjectParticipantSerializer, \
+    ProjectParticipantCreateSerializer, RunSerializer
 from rest_framework import viewsets, mixins, generics
 from rest_framework import permissions
 from rest_framework import status
@@ -122,11 +124,15 @@ class ProjectViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'], url_path='lookup')
     def lookup_projects_by_site_id(self, request):
         """
-        Look up ProjectParticipant by site ID.
+        Look up ProjectParticipant by site ID/name.
         All projects this site is involved will be returned.
         """
         site_id_param = request.GET.get('site_id', None)
-        queryset = ProjectParticipant.objects.filter(site=site_id_param)
+        name_param = request.GET.get('name', None)
+        if site_id_param:
+            queryset = ProjectParticipant.objects.filter(site=site_id_param)
+        else:
+            queryset = Project.objects.get(name=name_param)
         serializer = ProjectParticipantSerializer(queryset, many=True)
         return Response(serializer.data)
 
@@ -138,7 +144,15 @@ class ProjectParticipantViewSet(viewsets.ModelViewSet):
     """
     queryset = ProjectParticipant.objects.all()
     serializer_class = ProjectParticipantSerializer
+    create_serializer_class = ProjectParticipantCreateSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            if hasattr(self, 'create_serializer_class'):
+                return self.create_serializer_class
+
+        return super(ProjectParticipantViewSet, self).get_serializer_class()
 
     def perform_create(self, serializer):
         serializer.save()
