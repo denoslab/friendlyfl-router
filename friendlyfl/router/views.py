@@ -15,6 +15,8 @@ from django.db import transaction, DatabaseError
 from django.utils import timezone
 from uuid import UUID
 
+from friendlyfl.utils import run_util
+
 
 def validate_uuid4(uuid_string):
     """
@@ -201,6 +203,17 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
             return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['GET'], url_path='lookup')
+    def lookup_runs_by_project_id(self, request):
+        """
+        Look up runs by project id.
+        """
+        project_id = request.GET.get('project', None)
+        queryset = Run.objects.filter(project_id=project_id)
+        serializer = RunSerializer(queryset, many=True)
+        dic = run_util.sort_runs(serializer.data)
+        return Response(dic)
 
 
 class BulkCreateRunAPIView(generics.ListCreateAPIView):

@@ -109,13 +109,13 @@ class Run(models.Model):
     """
 
     class RunStatus(models.IntegerChoices):
-        STANDBY = 0
-        PREPARING = 1
-        RUNNING = 2
-        PENDING_SUCCESS = 3
-        PENDING_FAILED = 4
-        SUCCESS = 5
-        FAILED = 6
+        FAILED = 0
+        PENDING_FAILED = 1
+        STANDBY = 2
+        PREPARING = 3
+        RUNNING = 4
+        PENDING_SUCCESS = 5
+        SUCCESS = 6
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     participant = models.ForeignKey(
