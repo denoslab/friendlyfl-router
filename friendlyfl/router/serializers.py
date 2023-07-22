@@ -177,7 +177,7 @@ class RunSerializer(serializers.ModelSerializer):
     participant = serializers.PrimaryKeyRelatedField(
         many=False, queryset=ProjectParticipant.objects.all())
     role = serializers.CharField(source='get_role_display', read_only=True)
-    status = serializers.CharField()
+    status = serializers.CharField(source='get_status_display')
     logs = serializers.JSONField(
         binary=False, default='{}', initial='{}', encoder=None)
     tasks = TaskSerializer(many=True)
@@ -215,7 +215,7 @@ class RunSerializer(serializers.ModelSerializer):
     class Meta:
         model = Run
         fields = ['id', 'project', 'batch', 'participant', 'role',
-                  'status', 'logs', 'artifacts', 'created_at', 'updated_at']
+                  'status', 'logs', 'artifacts', 'tasks', 'middle_artifacts', 'created_at', 'updated_at']
         create_only_fields = ('project', 'participant', 'role')
 
 
