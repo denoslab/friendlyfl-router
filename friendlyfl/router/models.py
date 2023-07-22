@@ -58,7 +58,7 @@ class Project(models.Model):
         curr_time = timezone.now()
         if not self.id:
             self.created_at = curr_time
-            self.batch = 1
+            self.batch = 0
         self.updated_at = curr_time
         return super(Project, self).save(*args, **kwargs)
 

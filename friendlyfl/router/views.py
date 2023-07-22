@@ -3,7 +3,8 @@ from friendlyfl.router.models import Site, Project, ProjectParticipant, Run
 from friendlyfl.router.serializers import UserSerializer, GroupSerializer
 from friendlyfl.router.serializers import SiteSerializer, \
     ProjectSerializer, ProjectParticipantSerializer, \
-    ProjectParticipantCreateSerializer, RunSerializer
+    ProjectParticipantCreateSerializer, RunSerializer, \
+    RunRetrieveSerializer
 from rest_framework import viewsets, mixins, generics
 from rest_framework import permissions
 from rest_framework import status
@@ -151,7 +152,6 @@ class ProjectParticipantViewSet(viewsets.ModelViewSet):
         if self.action == 'create':
             if hasattr(self, 'create_serializer_class'):
                 return self.create_serializer_class
-
         return super(ProjectParticipantViewSet, self).get_serializer_class()
 
     def perform_create(self, serializer):
@@ -165,7 +165,14 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
     """
     queryset = Run.objects.all()
     serializer_class = RunSerializer
+    retrieve_serializer_class = RunRetrieveSerializer
     permission_classes = [permissions.IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            if hasattr(self, 'retrieve_serializer_class'):
+                return self.retrieve_serializer_class
+        return super(RunViewSet, self).get_serializer_class()
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
