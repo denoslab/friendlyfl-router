@@ -1,7 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User, Group
 from django.utils import timezone
-import uuid
 from django.utils.translation import gettext_lazy as _
 from django_fsm import transition, FSMField
 
@@ -17,7 +15,7 @@ class Site(models.Model):
 
     name = models.CharField(max_length=100, unique=True, blank=False)
     description = models.TextField()
-    uid = models.UUIDField(primary_key=False)
+    uid = models.UUIDField(primary_key=False, unique=True)
     owner = models.ForeignKey(
         'auth.User', default='admin', related_name='owner', on_delete=models.CASCADE)
     status = models.IntegerField(
@@ -48,7 +46,7 @@ class Project(models.Model):
     name = models.CharField(max_length=100, blank=True, default='')
     description = models.TextField()
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
-    tasks = models.JSONField(encoder=None, decoder=None)
+    tasks = models.JSONField(encoder=None, decoder=None, default='[]')
     batch = models.IntegerField()
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
@@ -123,6 +121,9 @@ class Run(models.Model):
     participant = models.ForeignKey(
         ProjectParticipant, on_delete=models.CASCADE)
     batch = models.IntegerField()
+    tasks = models.JSONField(encoder=None, decoder=None, default='[]')
+    middle_artifacts = models.JSONField(
+        encoder=None, decoder=None, default='[]')
     role = models.CharField(
         max_length=2,
         choices=ProjectParticipant.Role.choices,
@@ -146,6 +147,7 @@ class Run(models.Model):
                 self.project.batch += 1
                 self.project.save()
             self.batch = self.project.batch
+            self.tasks = self.project.tasks
             self.status = Run.RunStatus.STANDBY
         self.updated_at = curr_time
         return super(Run, self).save(*args, **kwargs)
