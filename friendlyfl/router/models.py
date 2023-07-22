@@ -1,7 +1,7 @@
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
-from django_fsm import transition, FSMField
+from django_fsm import transition, FSMIntegerField
 
 
 class Site(models.Model):
@@ -46,7 +46,7 @@ class Project(models.Model):
     name = models.CharField(max_length=100, blank=True, default='')
     description = models.TextField()
     site = models.ForeignKey(Site, on_delete=models.CASCADE)
-    tasks = models.JSONField(encoder=None, decoder=None, default='[]')
+    tasks = models.JSONField(encoder=None, decoder=None, default=[])
     batch = models.IntegerField()
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
@@ -108,28 +108,28 @@ class Run(models.Model):
     Runs of a project.
     """
 
-    class RunStatus(models.TextChoices):
-        STANDBY = 'STANDBY'
-        PREPARING = 'PREPARING'
-        RUNNING = 'RUNNING'
-        PENDING_SUCCESS = 'PENDING_SUCCESS'
-        PENDING_FAILED = 'PENDING_FAILED'
-        SUCCESS = 'SUCCESS'
-        FAILED = 'FAILED'
+    class RunStatus(models.IntegerChoices):
+        STANDBY = 0
+        PREPARING = 1
+        RUNNING = 2
+        PENDING_SUCCESS = 3
+        PENDING_FAILED = 4
+        SUCCESS = 5
+        FAILED = 6
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     participant = models.ForeignKey(
         ProjectParticipant, on_delete=models.CASCADE)
     batch = models.IntegerField()
-    tasks = models.JSONField(encoder=None, decoder=None, default='[]')
+    tasks = models.JSONField(encoder=None, decoder=None, default=[])
     middle_artifacts = models.JSONField(
-        encoder=None, decoder=None, default='[]')
+        encoder=None, decoder=None, default=[])
     role = models.CharField(
         max_length=2,
         choices=ProjectParticipant.Role.choices,
         default=ProjectParticipant.Role.PARTICIPANT,
     )
-    status = FSMField(
+    status = FSMIntegerField(
         choices=RunStatus.choices, default=RunStatus.STANDBY, protected=True)
     logs = models.JSONField(encoder=None, decoder=None, default='{}')
     artifacts = models.JSONField(encoder=None, decoder=None, default='{}')

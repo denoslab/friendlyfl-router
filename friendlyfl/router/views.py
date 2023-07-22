@@ -222,6 +222,7 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
                     "participant": pp,
                     "role": pp.role,
                     "status": Run.RunStatus.STANDBY,
+                    "tasks": project.tasks,
                     "batch": project.batch,
                     "created_at": curr_time,
                     "updated_at": curr_time
