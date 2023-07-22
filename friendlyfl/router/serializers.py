@@ -2,8 +2,7 @@ from datetime import datetime
 
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
-from friendlyfl.router.models import Site, Project, ProjectParticipant, Run
-import uuid
+from friendlyfl.router.models import Run
 
 from rest_framework.validators import UniqueValidator
 
@@ -23,7 +22,7 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ['url', 'name']
 
 
-class SiteSerializer(serializers.Serializer):
+class SiteSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(
         required=True, allow_blank=False, max_length=100, validators=[UniqueValidator(queryset=Site.objects.all())])
@@ -59,6 +58,13 @@ class SiteSerializer(serializers.Serializer):
         create_only_fields = ('uid',)
 
 
+class TaskSerializer(serializers.Serializer):
+    seq = serializers.IntegerField(required=True)
+    model = serializers.CharField(required=True, allow_blank=False)
+    config = serializers.JSONField(
+        binary=False, default='{}', initial='{}', encoder=None)
+
+
 class ProjectSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
     name = serializers.CharField(
@@ -68,8 +74,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     site = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Site.objects.all())
     batch = serializers.IntegerField(read_only=True)
-    tasks = serializers.JSONField(
-        binary=False, default='{}', initial='{}', encoder=None)
+    tasks = TaskSerializer(many=True)
     created_at = serializers.DateTimeField(read_only=True)
     updated_at = serializers.DateTimeField(read_only=True)
 
@@ -174,6 +179,9 @@ class RunSerializer(serializers.ModelSerializer):
     role = serializers.CharField(source='get_role_display', read_only=True)
     status = serializers.CharField()
     logs = serializers.JSONField(
+        binary=False, default='{}', initial='{}', encoder=None)
+    tasks = TaskSerializer(many=True)
+    middle_artifacts = serializers.JSONField(
         binary=False, default='{}', initial='{}', encoder=None)
     artifacts = serializers.JSONField(
         binary=False, default='{}', initial='{}', encoder=None)
