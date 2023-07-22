@@ -157,36 +157,11 @@ class ProjectParticipantSerializer(serializers.ModelSerializer):
         create_only_fields = ('site', 'project', 'role')
 
 
-class ProjectParticipantCreateSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(read_only=True)
+class ProjectParticipantCreateSerializer(ProjectParticipantSerializer):
     site = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Site.objects.all())
     project = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Project.objects.all())
-    role = serializers.CharField()
-    notes = serializers.CharField(style={'base_template': 'textarea.html'})
-    created_at = serializers.DateTimeField(read_only=True)
-    updated_at = serializers.DateTimeField(read_only=True)
-
-    def create(self, validated_data):
-        """
-        Create and return a new `ProjectParticipant` instance, given the validated data.
-        """
-        return ProjectParticipant.objects.create(**validated_data)
-
-    def update(self, instance, validated_data):
-        """
-        Update and return an existing `ProjectParticipant` instance, given the validated data.
-        """
-        instance.notes = validated_data.get('notes', instance.notes)
-        instance.save()
-        return instance
-
-    class Meta:
-        model = ProjectParticipant
-        fields = ['id', 'site', 'project', 'role',
-                  'notes', 'created_at', 'updated_at']
-        create_only_fields = ('site', 'project', 'role')
 
 
 class RunSerializer(serializers.ModelSerializer):
@@ -234,3 +209,8 @@ class RunSerializer(serializers.ModelSerializer):
         fields = ['id', 'project', 'batch', 'participant', 'role',
                   'status', 'logs', 'artifacts', 'created_at', 'updated_at']
         create_only_fields = ('project', 'participant', 'role')
+
+
+class RunRetrieveSerializer(RunSerializer):
+    project = ProjectSerializer()
+    participant = ProjectParticipantSerializer()
