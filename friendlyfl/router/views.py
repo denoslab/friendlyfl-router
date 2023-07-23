@@ -1,21 +1,21 @@
+from uuid import UUID
+
 from django.contrib.auth.models import User, Group
+from django.db import transaction, DatabaseError
+from django.utils import timezone
+from rest_framework import permissions
+from rest_framework import status
+from rest_framework import viewsets, mixins, generics
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from friendlyfl.router.models import Site, Project, ProjectParticipant, Run
-from friendlyfl.router.serializers import UserSerializer, GroupSerializer
 from friendlyfl.router.serializers import SiteSerializer, \
     ProjectSerializer, ProjectParticipantSerializer, \
     ProjectParticipantCreateSerializer, RunSerializer, \
     RunRetrieveSerializer
-from rest_framework import viewsets, mixins, generics
-from rest_framework import permissions
-from rest_framework import status
-
-from rest_framework.decorators import action, api_view
-from rest_framework.response import Response
-from django.db import transaction, DatabaseError
-from django.utils import timezone
-from uuid import UUID
-
-from friendlyfl.utils import run_util
+from friendlyfl.router.serializers import UserSerializer, GroupSerializer
+from friendlyfl.utils import display_util
 
 
 def validate_uuid4(uuid_string):
@@ -159,6 +159,17 @@ class ProjectParticipantViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save()
 
+    @action(detail=False, methods=['GET'], url_path='lookup')
+    def get_participants_by_project(self, request):
+        """
+               Look up participants by project id.
+               """
+        project_id = request.GET.get('project', None)
+        queryset = ProjectParticipant.objects.filter(project_id=project_id)
+        participants_data = ProjectParticipantSerializer(
+            queryset, many=True).data
+        return Response(participants_data)
+
 
 class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, viewsets.GenericViewSet):
     """
@@ -212,7 +223,7 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
         project_id = request.GET.get('project', None)
         queryset = Run.objects.filter(project_id=project_id)
         serializer = RunSerializer(queryset, many=True)
-        dic = run_util.sort_runs(serializer.data)
+        dic = display_util.sort_runs(serializer.data)
         return Response(dic)
 
 
