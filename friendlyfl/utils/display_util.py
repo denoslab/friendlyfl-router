@@ -1,6 +1,3 @@
-from friendlyfl.router.models import Run
-
-
 def sort_runs(runs):
     merged_runs = {}
 
@@ -11,12 +8,10 @@ def sort_runs(runs):
         else:
             merged_runs[batch] = update_run(merged_runs[batch], run)
     sorted_dict = dict(sorted(merged_runs.items(), key=lambda x: x[0]))
-
-    return sorted_dict
+    return list(sorted_dict.values())
 
 
 def update_run(run_old, run_new):
-
     create_at = "created_at"
     update_at = "updated_at"
     status = "status"
