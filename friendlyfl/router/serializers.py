@@ -168,6 +168,7 @@ class ProjectParticipantCreateSerializer(ProjectParticipantSerializer):
         many=False, queryset=Site.objects.all())
     project = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Project.objects.all())
+    role = serializers.CharField()
 
 
 class RunSerializer(serializers.ModelSerializer):

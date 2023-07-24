@@ -77,7 +77,10 @@ class SiteViewSet(viewsets.ModelViewSet):
         uid_param = request.GET.get('uid', None)
         if not validate_uuid4(uid_param):
             return Response("Invalid uid", status=status.HTTP_400_BAD_REQUEST)
-        queryset = Site.objects.get(uid=uid_param)
+        try:
+            queryset = Site.objects.get(uid=uid_param)
+        except Site.DoesNotExist:
+            return Response("Site not found", status=status.HTTP_404_NOT_FOUND)
         serializer = SiteSerializer(queryset)
         return Response(serializer.data)
 
@@ -133,10 +136,18 @@ class ProjectViewSet(viewsets.ModelViewSet):
         site_id_param = request.GET.get('site_id', None)
         name_param = request.GET.get('name', None)
         if site_id_param:
-            queryset = ProjectParticipant.objects.filter(site=site_id_param)
+            try:
+                queryset = ProjectParticipant.objects.filter(
+                    site=site_id_param)
+            except ProjectParticipant.DoesNotExist:
+                return Response("ProjectParticipant not found", status=status.HTTP_404_NOT_FOUND)
+            serializer = ProjectParticipantSerializer(queryset, many=True)
         else:
-            queryset = Project.objects.get(name=name_param)
-        serializer = ProjectParticipantSerializer(queryset, many=True)
+            try:
+                queryset = Project.objects.get(name=name_param)
+            except Project.DoesNotExist:
+                return Response("Project not found", status=status.HTTP_404_NOT_FOUND)
+            serializer = ProjectSerializer(queryset, many=False)
         return Response(serializer.data)
 
 
@@ -162,8 +173,8 @@ class ProjectParticipantViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['GET'], url_path='lookup')
     def get_participants_by_project(self, request):
         """
-               Look up participants by project id.
-               """
+        Look up participants by project id.
+        """
         project_id = request.GET.get('project', None)
         queryset = ProjectParticipant.objects.filter(project_id=project_id)
         participants_data = ProjectParticipantSerializer(
