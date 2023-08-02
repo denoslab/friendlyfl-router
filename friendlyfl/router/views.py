@@ -237,6 +237,31 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
         dic = display_util.sort_runs(serializer.data)
         return Response(dic)
 
+    @action(detail=False, methods=['GET'], url_path='detail')
+    def get_runs_details(self, request):
+        """
+        Get runs details by batch , project_id and site_id.
+        """
+        batch = request.GET.get('batch', None)
+        project_id = request.GET.get('project', None)
+        site = request.GET.get('site', None)
+
+        participant_queryset = ProjectParticipant.objects.get(
+            project_id=project_id, site_id=site)
+        participant_serializer = ProjectParticipantSerializer(
+            participant_queryset)
+        participant_data = participant_serializer.data
+        role = None
+        participant_id = None
+        if participant_data:
+            role = participant_data['role']
+            participant_id = participant_data['id']
+        run_queryset = Run.objects.filter(project_id=project_id, batch=batch)
+        run_serializer = RunSerializer(run_queryset, many=True)
+        run_data = run_serializer.data
+        dic = display_util.pick_runs(run_data, role, participant_id)
+        return Response(dic)
+
 
 class BulkCreateRunAPIView(generics.ListCreateAPIView):
     # serializer_class = RunSerializer
