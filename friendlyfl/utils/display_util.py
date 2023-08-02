@@ -31,3 +31,19 @@ def update_run(run_old, run_new):
     if status_new < status_cur:
         run_old[status] = status_new
     return run_old
+
+
+def pick_runs(run_list, role, participant_id):
+    if not run_list or not role or not participant_id:
+        return {}
+    participant = 'participant'
+    runs = 'runs'
+    dic = {participant: participant_id}
+    if role == 'coordinator':
+        dic[runs] = run_list
+        return dic
+    for run in run_list:
+        if run[participant] == participant_id:
+            dic[runs] = [run]
+            break
+    return dic
