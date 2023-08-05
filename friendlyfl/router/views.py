@@ -1,13 +1,19 @@
+import os
+import pathlib
+import zipfile
 from uuid import UUID
 
 from django.contrib.auth.models import User, Group
+from django.core.files.storage import FileSystemStorage
 from django.db import transaction, DatabaseError
+from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import permissions
 from rest_framework import status
 from rest_framework import viewsets, mixins, generics
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.viewsets import ViewSet
 
 from friendlyfl.router.models import Site, Project, ProjectParticipant, Run
 from friendlyfl.router.serializers import SiteSerializer, \
@@ -16,6 +22,7 @@ from friendlyfl.router.serializers import SiteSerializer, \
     RunRetrieveSerializer
 from friendlyfl.router.serializers import UserSerializer, GroupSerializer
 from friendlyfl.utils import display_util
+from ..utils.file_util import generate_artifacts_url, artifact_file
 
 
 def validate_uuid4(uuid_string):
@@ -296,3 +303,69 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
             else:
                 return Response("Error while creating runs", status=status.HTTP_400_BAD_REQUEST)
         return Response("project not found", status=status.HTTP_400_BAD_REQUEST)
+
+
+class ArtifactsViewSet(ViewSet):
+    @action(detail=False, methods=['POST'], url_path='upload')
+    def upload(self, request):
+
+        file_uploaded = request.FILES.get('file')
+        run_id = request.POST.get('run', None)
+
+        if not file_uploaded or not run_id:
+            return Response("Invalid artifacts or params", status=status.HTTP_400_BAD_REQUEST)
+
+        run = Run.objects.get(id=run_id)
+        if run:
+            project_id = run.project_id
+            batch = run.batch
+            participant_id = run.participant_id
+
+            url = generate_artifacts_url(project_id, batch, participant_id)
+            if url:
+                fs = FileSystemStorage(url)
+                filename = fs.save(file_uploaded.name, file_uploaded)
+                if filename:
+                    run.artifacts = url
+                    run.save()
+                    return Response(status=status.HTTP_201_CREATED)
+                else:
+                    return Response("Error while saving artifacts", status=status.HTTP_400_BAD_REQUEST)
+        return Response("No run found", status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['GET'], url_path='download')
+    def download(self, request):
+        run_id = request.GET.get('run', None)
+        if not run_id:
+            return Response("Run id not provided", status=status.HTTP_400_BAD_REQUEST)
+        run = Run.objects.get(id=run_id)
+
+        if run:
+            url = run.artifacts
+            if url and os.path.exists(url):
+                fs = FileSystemStorage()
+
+                # Get a list of all file paths in the directory
+                file_paths = [os.path.join(url, file) for file in os.listdir(url) if
+                              os.path.isfile(os.path.join(url, file)) and not file.endswith('zip')]
+
+                # Create a temporary file to store the zipped data
+                zip_temp_path = url + artifact_file
+
+                pathlib.Path(zip_temp_path).touch()
+
+                # Create a ZipFile object
+                with zipfile.ZipFile(zip_temp_path, 'w') as zip_file:
+                    # Add each file to the zip archive
+                    for file_path in file_paths:
+                        zip_file.write(file_path, os.path.basename(file_path))
+
+                # Use FileSystemStorage to read the zipped file
+                with fs.open(zip_temp_path) as zip_file:
+                    response = HttpResponse(
+                        zip_file, content_type='application/zip')
+                    response[
+                        'Content-Disposition'] = f'attachment; filename="{os.path.basename(zip_temp_path)}"'
+                    return response
+            return Response("No artifacts found", status=status.HTTP_404_NOT_FOUND)
+        return Response("Run not exist", status=status.HTTP_400_BAD_REQUEST)

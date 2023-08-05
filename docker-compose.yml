@@ -9,16 +9,19 @@ services:
       - '8000:8000'
     env_file:
       - .env
+    volumes:
+      - artifacts:/friendlyfl/artifacts
 
   postgres:
     image: postgres:12.9
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - 5432:5432
+      - '5432:5432'
     environment:
       POSTGRES_USERNAME: postgres
       POSTGRES_PASSWORD: UCalgary123
 
 volumes:
   postgres_data: {}
+  artifacts:  {}

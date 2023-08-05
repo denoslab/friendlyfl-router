@@ -18,6 +18,7 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from rest_framework import routers
 from friendlyfl.router import views
+from friendlyfl.router.views import ArtifactsViewSet
 
 router_v1 = routers.DefaultRouter()
 router_v1.register(r'users', views.UserViewSet)
@@ -28,6 +29,7 @@ router_v1.register(r'project-participants',
                    views.ProjectParticipantViewSet, basename="project-participant")
 router_v1.register(r'runs',
                    views.RunViewSet, basename="run")
+router_v1.register(r'artifacts', ArtifactsViewSet, basename="artifacts")
 
 # Wire up our API using automatic URL routing.
 # Additionally, we include login URLs for the browsable API.
