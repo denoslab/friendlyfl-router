@@ -9,6 +9,7 @@ services:
       - '8000:8000'
     env_file:
       - .env
+    command: bash -c "cron && poetry run python3 manage.py runserver 0.0.0.0:8000"
     volumes:
       - artifacts:/friendlyfl/artifacts
 
