@@ -1,0 +1,1 @@
+* * * * * /usr/local/bin/poetry --directory /app run /app/manage.py runjob check_site_status >> /var/log/cron.log 2>&1
