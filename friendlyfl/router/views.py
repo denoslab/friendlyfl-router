@@ -276,6 +276,12 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
 
     def post(self, request):
         project_id = request.data.get('project', None)
+        queryset = Run.objects.filter(project_id=project_id)
+        serializer = RunSerializer(queryset, many=True)
+        should_create_new_runs = display_util.should_create_new_runs(
+            serializer.data)
+        if not should_create_new_runs:
+            return Response("Last round of runs not completed", status=status.HTTP_400_BAD_REQUEST)
         project = Project.objects.get(id=project_id)
         if project_id and project:
             curr_time = timezone.now()
@@ -284,24 +290,27 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
             records_to_create = []
             pps = ProjectParticipant.objects.filter(project=project_id)
             for pp in pps:
-                data = {
-                    "project": project,
-                    "participant": pp,
-                    "role": pp.role,
-                    "status": Run.RunStatus.STANDBY,
-                    "tasks": project.tasks,
-                    "batch": project.batch,
-                    "created_at": curr_time,
-                    "updated_at": curr_time
-                }
-                records_to_create.append(data)
-            created_records = Run.objects.bulk_create(
-                [Run(**item) for item in records_to_create], batch_size=100)
-
-            if created_records:
-                return Response(status=status.HTTP_201_CREATED)
+                if pp.site.status == 1:
+                    data = {
+                        "project": project,
+                        "participant": pp,
+                        "role": pp.role,
+                        "status": Run.RunStatus.STANDBY,
+                        "tasks": project.tasks,
+                        "batch": project.batch,
+                        "created_at": curr_time,
+                        "updated_at": curr_time
+                    }
+                    records_to_create.append(data)
+            if len(records_to_create) == len(pps):
+                created_records = Run.objects.bulk_create(
+                    [Run(**item) for item in records_to_create], batch_size=100)
+                if created_records:
+                    return Response(status=status.HTTP_201_CREATED)
+                else:
+                    return Response("Error while creating runs", status=status.HTTP_400_BAD_REQUEST)
             else:
-                return Response("Error while creating runs", status=status.HTTP_400_BAD_REQUEST)
+                return Response("Not all sites are connected", status=status.HTTP_400_BAD_REQUEST)
         return Response("project not found", status=status.HTTP_400_BAD_REQUEST)
 
 

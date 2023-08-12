@@ -47,3 +47,14 @@ def pick_runs(run_list, role, participant_id):
             dic[runs] = [run]
             break
     return dic
+
+
+def should_create_new_runs(data):
+    if len(data) == 0:
+        return True
+    run_map = sort_runs(data)
+    if run_map and run_map[-1]:
+        last_round = run_map[-1]
+        status = last_round['status']
+        return status == 'Success' or status == 'Failed'
+    return False
