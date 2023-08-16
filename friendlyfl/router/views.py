@@ -12,6 +12,7 @@ from rest_framework import permissions
 from rest_framework import status
 from rest_framework import viewsets, mixins, generics
 from rest_framework.decorators import action
+from rest_framework.generics import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.viewsets import ViewSet
 
@@ -221,17 +222,22 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
 
     @action(detail=True, methods=['PUT'], url_path='status')
     def update_status(self, request, pk=None):
-        instance = self.get_object()
-        data = {
-            "status": request.data.get('status', None),
-        }
-        serializer = self.serializer_class(
-            instance=instance, data=data, partial=True)
-        if serializer.is_valid():
-            serializer.update_status(instance, data)
-            return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        with transaction.atomic():
+            instance = self.get_with_lock()
+            data = {
+                "status": request.data.get('status', None),
+            }
+            serializer = self.serializer_class(
+                instance=instance, data=data, partial=True)
+            if serializer.is_valid():
+                serializer.update_status(instance, data)
+                return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+            else:
+                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def get_with_lock(self, queryset=None):
+        # Acquire an exclusive lock on the object using select_for_update()
+        return get_object_or_404(Run.objects.select_for_update(), pk=self.kwargs['pk'])
 
     @action(detail=False, methods=['GET'], url_path='lookup')
     def lookup_runs_by_project_id(self, request):
@@ -314,7 +320,8 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
         return Response("project not found", status=status.HTTP_400_BAD_REQUEST)
 
 
-class ArtifactsViewSet(ViewSet):
+class RunsActionViewSet(ViewSet):
+
     @action(detail=False, methods=['POST'], url_path='upload')
     def upload(self, request):
 
@@ -378,3 +385,54 @@ class ArtifactsViewSet(ViewSet):
                     return response
             return Response("No artifacts found", status=status.HTTP_404_NOT_FOUND)
         return Response("Run not exist", status=status.HTTP_400_BAD_REQUEST)
+
+    @action(detail=False, methods=['PUT'], url_path='update')
+    def update_status_by_action(self, request, pk=None):
+        run_id = request.data.get('run', None)
+        action_role = request.data.get('role', None)
+        request_action = request.data.get('action', None)
+        project_id = request.data.get('project', None)
+        batch = request.data.get('batch', None)
+
+        if not run_id or not action_role or not request_action or not project_id or not batch:
+            return Response("Run info absent", status=status.HTTP_400_BAD_REQUEST)
+
+        target_status = display_util.get_status_from_action(request_action)
+        if not target_status:
+            return Response("Failed to get target status from action {}".format(request_action),
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        if action_role == 'coordinator':
+            with transaction.atomic():
+                project = Project.objects.select_for_update().get(id=project_id)
+                if not project:
+                    return Response("Failed to get project of run {}".format(run_id),
+                                    status=status.HTTP_400_BAD_REQUEST)
+                run = Run.objects.select_for_update().filter(project=project_id, batch=batch).exclude(
+                    status=target_status)
+                if not run:
+                    return Response("Failed to get run could perform action {}".format(request_action),
+                                    status=status.HTTP_400_BAD_REQUEST)
+                run.update(status=target_status)
+                return Response(
+                    "Update runs of project {} in batch {}  status to {}".format(
+                        project_id, batch, target_status),
+                    status=status.HTTP_202_ACCEPTED)
+        else:
+            with transaction.atomic():
+                project = Project.objects.select_for_update().get(id=project_id)
+                if not project:
+                    return Response("Failed to get project of run {}".format(run_id),
+                                    status=status.HTTP_400_BAD_REQUEST)
+                run = Run.objects.select_for_update().get(id=run_id)
+                if not run or run.status == target_status:
+                    return Response("Failed to get run could perform action {}".format(request_action),
+                                    status=status.HTTP_400_BAD_REQUEST)
+                if target_status == 1:
+                    run.to_stop()
+                    run.save()
+                else:
+                    run.to_restart()
+                    run.save()
+                return Response("Update run {} status to {}".format(run_id, target_status),
+                                status=status.HTTP_202_ACCEPTED)

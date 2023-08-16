@@ -58,3 +58,11 @@ def should_create_new_runs(data):
         status = last_round['status']
         return status == 'Success' or status == 'Failed'
     return False
+
+
+def get_status_from_action(request_action):
+    if request_action == 'stop':
+        return 1
+    if request_action == 'restart':
+        return 2
+    return None
