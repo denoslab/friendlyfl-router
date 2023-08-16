@@ -172,6 +172,17 @@ class Run(models.Model):
                 instance.failed()
         return instance
 
+    @transition(field=status, source="*", target=RunStatus.STANDBY)
+    def to_restart(self):
+        print(self.status)
+
+    @transition(field=status,
+                source=[RunStatus.STANDBY,
+                        RunStatus.PREPARING, RunStatus.RUNNING],
+                target=RunStatus.PENDING_FAILED)
+    def to_stop(self):
+        print(self.status)
+
     @transition(field=status, source=RunStatus.STANDBY, target=RunStatus.PREPARING)
     def preparing(self):
         print(self.status)
