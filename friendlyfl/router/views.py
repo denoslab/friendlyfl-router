@@ -300,6 +300,7 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
                     data = {
                         "project": project,
                         "participant": pp,
+                        "site_uid": pp.site.uid,
                         "role": pp.role,
                         "status": Run.RunStatus.STANDBY,
                         "tasks": project.tasks,

@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
@@ -120,6 +122,7 @@ class Run(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     participant = models.ForeignKey(
         ProjectParticipant, on_delete=models.CASCADE)
+    site_uid = models.UUIDField(default=uuid.uuid4())
     batch = models.IntegerField()
     tasks = models.JSONField(encoder=None, decoder=None, default=[])
     middle_artifacts = models.JSONField(
@@ -142,6 +145,7 @@ class Run(models.Model):
         if not self.id:
             # copy the participant's role to the new record
             self.role = self.participant.role
+            self.site_uid = self.participant.site.uid
             self.created_at = curr_time
             if ProjectParticipant.Role.COORDINATOR == self.role:
                 self.project.batch += 1
