@@ -222,18 +222,40 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
 
     @action(detail=True, methods=['PUT'], url_path='status')
     def update_status(self, request, pk=None):
+        run = self.get_object()
+        state = request.data.get('status', None)
+        increase_round = request.data.get('increase_round', False)
+        project_id = run.project.id
+        if not run:
+            return Response("Run not found", status=status.HTTP_400_BAD_REQUEST)
+        if state is None:
+            return Response("status is invalid", status=status.HTTP_400_BAD_REQUEST)
+
         with transaction.atomic():
-            instance = self.get_with_lock()
-            data = {
-                "status": request.data.get('status', None),
-            }
-            serializer = self.serializer_class(
-                instance=instance, data=data, partial=True)
-            if serializer.is_valid():
-                serializer.update_status(instance, data)
-                return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
+            project = Project.objects.select_for_update().get(id=project_id)
+            if not project:
+                return Response("Failed to get project of run {}".format(run.id),
+                                status=status.HTTP_400_BAD_REQUEST)
+            if run.role == ProjectParticipant.Role.COORDINATOR:
+                runs = Run.objects.select_for_update().filter(
+                    project=project_id, batch=run.batch)
+                if increase_round:
+                    if run.cur_seq <= len(run.tasks):
+                        tasks = run.tasks
+                        task = tasks[run.cur_seq - 1]
+                        if task['config']['current_round'] < task['config']['total_round']:
+                            task['config']['current_round'] += 1
+                            tasks[run.cur_seq - 1] = task
+                            runs.update(tasks=tasks)
+                        else:
+                            if run.cur_seq < len(run.tasks):
+                                runs.update(cur_seq=run.cur_seq + 1)
+                runs.update(status=state)
             else:
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                run = self.get_with_lock()
+                run = Run.update_status(run, state)
+                run.save()
+            return Response(status=status.HTTP_202_ACCEPTED)
 
     def get_with_lock(self, queryset=None):
         # Acquire an exclusive lock on the object using select_for_update()
@@ -245,10 +267,22 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
         Look up runs by project id.
         """
         project_id = request.GET.get('project', None)
-        queryset = Run.objects.filter(project_id=project_id)
+        batch_id = request.GET.get('batch_id', None)
+        if batch_id:
+            queryset = Run.objects.filter(
+                project_id=project_id, batch=batch_id)
+        else:
+            queryset = Run.objects.filter(project_id=project_id)
         serializer = RunSerializer(queryset, many=True)
         dic = display_util.sort_runs(serializer.data)
         return Response(dic)
+
+    @action(detail=False, methods=['GET'], url_path='active')
+    def get_active_runs(self, request):
+        queryset = Run.objects.exclude(
+            status__in=[Run.RunStatus.FAILED, Run.RunStatus.SUCCESS])
+        serializer = RunSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=False, methods=['GET'], url_path='detail')
     def get_runs_details(self, request):
@@ -258,9 +292,15 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
         batch = request.GET.get('batch', None)
         project_id = request.GET.get('project', None)
         site = request.GET.get('site', None)
+        site_uid = request.GET.get('site_uid', None)
 
-        participant_queryset = ProjectParticipant.objects.get(
-            project_id=project_id, site_id=site)
+        if site_uid:
+            site_id = Site.objects.get(uid=site_uid)
+            participant_queryset = ProjectParticipant.objects.get(
+                project_id=project_id, site_id=site_id.id)
+        else:
+            participant_queryset = ProjectParticipant.objects.get(
+                project_id=project_id, site_id=site)
         participant_serializer = ProjectParticipantSerializer(
             participant_queryset)
         participant_data = participant_serializer.data
@@ -305,6 +345,7 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
                         "status": Run.RunStatus.STANDBY,
                         "tasks": project.tasks,
                         "batch": project.batch,
+                        "cur_seq": 1,
                         "created_at": curr_time,
                         "updated_at": curr_time
                     }
