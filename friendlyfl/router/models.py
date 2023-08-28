@@ -1,6 +1,6 @@
 import uuid
 
-from django.db import models
+from django.db import models, transaction
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django_fsm import transition, FSMIntegerField
@@ -117,13 +117,16 @@ class Run(models.Model):
         PREPARING = 3
         RUNNING = 4
         PENDING_SUCCESS = 5
-        SUCCESS = 6
+        PENDING_AGGREGATING = 6
+        AGGREGATING = 7
+        SUCCESS = 8
 
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
     participant = models.ForeignKey(
         ProjectParticipant, on_delete=models.CASCADE)
     site_uid = models.UUIDField(default=uuid.uuid4())
     batch = models.IntegerField()
+    cur_seq = models.IntegerField(default=1)
     tasks = models.JSONField(encoder=None, decoder=None, default=[])
     middle_artifacts = models.JSONField(
         encoder=None, decoder=None, default=[])
@@ -151,6 +154,7 @@ class Run(models.Model):
                 self.project.batch += 1
                 self.project.save()
             self.batch = self.project.batch
+            self.cur_seq = 1
             self.tasks = self.project.tasks
             self.status = Run.RunStatus.STANDBY
         self.updated_at = curr_time
@@ -162,12 +166,18 @@ class Run(models.Model):
     @staticmethod
     def update_status(instance, status):
         match status:
+            case Run.RunStatus.STANDBY:
+                instance.to_restart()
             case Run.RunStatus.PREPARING:
                 instance.preparing()
             case Run.RunStatus.RUNNING:
                 instance.running()
             case Run.RunStatus.PENDING_SUCCESS:
                 instance.pending_success()
+            case Run.RunStatus.PENDING_AGGREGATING:
+                instance.pending_aggregating()
+            case Run.RunStatus.AGGREGATING:
+                instance.aggregating()
             case Run.RunStatus.PENDING_FAILED:
                 instance.pending_failed()
             case Run.RunStatus.SUCCESS:
@@ -199,15 +209,23 @@ class Run(models.Model):
     def pending_success(self):
         print(self.status)
 
+    @transition(field=status, source=RunStatus.PENDING_SUCCESS, target=RunStatus.PENDING_AGGREGATING)
+    def pending_aggregating(self):
+        print(self.status)
+
+    @transition(field=status, source=RunStatus.PENDING_AGGREGATING, target=RunStatus.AGGREGATING)
+    def aggregating(self):
+        print(self.status)
+
     @transition(field=status, source=[RunStatus.RUNNING, RunStatus.PREPARING], target=RunStatus.PENDING_FAILED)
     def pending_failed(self):
         print(self.status)
 
-    @transition(field=status, source=RunStatus.PENDING_SUCCESS, target=RunStatus.SUCCESS)
+    @transition(field=status, source=[RunStatus.PENDING_SUCCESS, RunStatus.AGGREGATING], target=RunStatus.SUCCESS)
     def success(self):
         print(self.status)
 
-    @transition(field=status, source=RunStatus.PENDING_FAILED, target=RunStatus.FAILED)
+    @transition(field=status, source=[RunStatus.PENDING_FAILED, RunStatus.PENDING_AGGREGATING, RunStatus.AGGREGATING], target=RunStatus.FAILED)
     def failed(self):
         print(self.status)
 

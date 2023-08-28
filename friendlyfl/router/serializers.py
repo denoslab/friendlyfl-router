@@ -176,6 +176,7 @@ class RunSerializer(serializers.ModelSerializer):
     project = serializers.PrimaryKeyRelatedField(
         many=False, queryset=Project.objects.all())
     batch = serializers.IntegerField(read_only=True)
+    cur_seq = serializers.IntegerField(read_only=True)
     participant = serializers.PrimaryKeyRelatedField(
         many=False, queryset=ProjectParticipant.objects.all())
     role = serializers.CharField(source='get_role_display', read_only=True)
@@ -210,14 +211,9 @@ class RunSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
-    def update_status(self, instance, validated_data):
-        status = validated_data.get('status', instance.status)
-        instance = Run.update_status(instance, status)
-        instance.save()
-
     class Meta:
         model = Run
-        fields = ['id', 'project', 'batch', 'participant', 'role', 'site_uid',
+        fields = ['id', 'project', 'batch', 'participant', 'role', 'site_uid', 'cur_seq',
                   'status', 'logs', 'artifacts', 'tasks', 'middle_artifacts', 'created_at', 'updated_at']
         create_only_fields = ('project', 'participant', 'role')
 

@@ -18,7 +18,6 @@ from django.urls import include, path
 from django.views.generic import RedirectView
 from rest_framework import routers
 from friendlyfl.router import views
-from friendlyfl.router.views import RunsActionViewSet
 
 router_v1 = routers.DefaultRouter()
 router_v1.register(r'users', views.UserViewSet)
