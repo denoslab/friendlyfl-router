@@ -1,6 +1,3 @@
-import os
-import pathlib
-import zipfile
 from uuid import UUID
 
 from django.contrib.auth.models import User, Group
@@ -23,7 +20,7 @@ from friendlyfl.router.serializers import SiteSerializer, \
     RunRetrieveSerializer
 from friendlyfl.router.serializers import UserSerializer, GroupSerializer
 from friendlyfl.utils import display_util
-from ..utils.file_util import generate_artifacts_url, artifact_file
+from ..utils.file_util import generate_url, get_file_urls, zip_all_files
 
 
 def validate_uuid4(uuid_string):
@@ -363,67 +360,96 @@ class BulkCreateRunAPIView(generics.ListCreateAPIView):
 
 
 class RunsActionViewSet(ViewSet):
+    """
+    This method is used by fl tasks to upload its artifacts and logs from local volume upon runs' task and round success
+    """
 
     @action(detail=False, methods=['POST'], url_path='upload')
     def upload(self, request):
 
-        file_uploaded = request.FILES.get('file')
-        run_id = request.POST.get('run', None)
+        artifacts_file = request.FILES.get('artifacts')
+        logs_file = request.FILES.get('logs')
+        mid_artifacts_file = request.FILES.get('mid_artifacts')
 
-        if not file_uploaded or not run_id:
-            return Response("Invalid artifacts or params", status=status.HTTP_400_BAD_REQUEST)
+        run_id = request.POST.get('run', None)
+        task_seq = request.POST.get('task_seq', None)
+        round_seq = request.POST.get('round_seq', None)
+
+        if not run_id or not task_seq or not round_seq:
+            return Response("Invalid uploaded  params", status=status.HTTP_400_BAD_REQUEST)
+
+        if not artifacts_file and not logs_file and not mid_artifacts_file:
+            return Response("Must at least upload one file", status=status.HTTP_400_BAD_REQUEST)
 
         run = Run.objects.get(id=run_id)
         if run:
-            project_id = run.project_id
-            batch = run.batch
-            participant_id = run.participant_id
 
-            url = generate_artifacts_url(project_id, batch, participant_id)
+            url = generate_url(run_id, task_seq, round_seq)
             if url:
                 fs = FileSystemStorage(url)
-                filename = fs.save(file_uploaded.name, file_uploaded)
-                if filename:
-                    run.artifacts = url
-                    run.save()
-                    return Response(status=status.HTTP_201_CREATED)
-                else:
-                    return Response("Error while saving artifacts", status=status.HTTP_400_BAD_REQUEST)
+                artifacts_file_name = None
+                logs_file_name = None
+                mid_artifacts_file_name = None
+                if artifacts_file:
+                    artifacts_file_name = fs.save(
+                        artifacts_file.name, artifacts_file)
+                    if not artifacts_file_name:
+                        return Response("Error while saving artifacts", status=status.HTTP_400_BAD_REQUEST)
+                if logs_file:
+                    logs_file_name = fs.save(logs_file.name, logs_file)
+                    if not logs_file_name:
+                        return Response("Error while saving logs", status=status.HTTP_400_BAD_REQUEST)
+                if mid_artifacts_file:
+                    mid_artifacts_file_name = fs.save(
+                        mid_artifacts_file.name, mid_artifacts_file)
+                    if not mid_artifacts_file_name:
+                        return Response("Error while saving mid-artifacts", status=status.HTTP_400_BAD_REQUEST)
+
+                if artifacts_file_name:
+                    run.artifacts.append(url + artifacts_file_name)
+                if logs_file_name:
+                    run.logs.append(url + logs_file_name)
+                if mid_artifacts_file_name:
+                    run.middle_artifacts.append(url + mid_artifacts_file_name)
+                run.save()
+                return Response(status=status.HTTP_200_OK)
         return Response("No run found", status=status.HTTP_400_BAD_REQUEST)
+
+    """
+    This method used to download artifacts or logs of run(s) including all tasks and inner rounds
+    """
 
     @action(detail=False, methods=['GET'], url_path='download')
     def download(self, request):
         run_id = request.GET.get('run', None)
-        if not run_id:
-            return Response("Run id not provided", status=status.HTTP_400_BAD_REQUEST)
+        all_runs = request.GET.get('all_runs', '0')
+        file_type = request.GET.get('type', None)
+        task_seq = request.GET.get('task_seq', None)
+        round_seq = request.GET.get('round_seq', None)
+
+        if not run_id or not file_type:
+            return Response("Run id or file type not provided", status=status.HTTP_400_BAD_REQUEST)
         run = Run.objects.get(id=run_id)
 
         if run:
-            url = run.artifacts
-            if url and os.path.exists(url):
-                fs = FileSystemStorage()
+            runs = []
+            if run.role == 'CO' and all_runs == '1':
+                project_id = run.project_id
+                batch = run.batch
+                all_runs = Run.objects.filter(
+                    project_id=project_id, batch=batch)
+                runs.extend(all_runs)
+            else:
+                runs.append(run)
 
-                # Get a list of all file paths in the directory
-                file_paths = [os.path.join(url, file) for file in os.listdir(url) if
-                              os.path.isfile(os.path.join(url, file)) and not file.endswith('zip')]
+            urls = get_file_urls(runs, task_seq, round_seq, file_type)
 
-                # Create a temporary file to store the zipped data
-                zip_temp_path = url + artifact_file
-
-                pathlib.Path(zip_temp_path).touch()
-
-                # Create a ZipFile object
-                with zipfile.ZipFile(zip_temp_path, 'w') as zip_file:
-                    # Add each file to the zip archive
-                    for file_path in file_paths:
-                        zip_file.write(file_path, os.path.basename(file_path))
-
-                # Use FileSystemStorage to read the zipped file
-                with fs.open(zip_temp_path) as zip_file:
+            if urls and len(urls) > 0:
+                zip_file = zip_all_files(run, urls, file_type)
+                if zip_file:
                     response = HttpResponse(
                         zip_file, content_type='application/zip')
-                    response[
-                        'Content-Disposition'] = f'attachment; filename="{os.path.basename(zip_temp_path)}"'
+                    response['Content-Disposition'] = f'attachment; filename="{file_type}.zip"'
                     return response
             return Response("No artifacts found", status=status.HTTP_404_NOT_FOUND)
         return Response("Run not exist", status=status.HTTP_400_BAD_REQUEST)
