@@ -137,8 +137,8 @@ class Run(models.Model):
     )
     status = FSMIntegerField(
         choices=RunStatus.choices, default=RunStatus.STANDBY, protected=True)
-    logs = models.JSONField(encoder=None, decoder=None, default='{}')
-    artifacts = models.JSONField(encoder=None, decoder=None, default='{}')
+    logs = models.JSONField(encoder=None, decoder=None, default=[])
+    artifacts = models.JSONField(encoder=None, decoder=None, default=[])
     created_at = models.DateTimeField(editable=False)
     updated_at = models.DateTimeField()
 
