@@ -5,6 +5,8 @@ services:
     build:
       context: .
     image: friendlyfl-router
+    depends_on:
+      - postgres
     ports:
       - '8000:8000'
     env_file:
