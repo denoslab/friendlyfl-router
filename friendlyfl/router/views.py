@@ -222,6 +222,7 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
         run = self.get_object()
         state = request.data.get('status', None)
         increase_round = request.data.get('increase_round', False)
+        update_all = request.data.get('update_all', False)
         project_id = run.project.id
         if not run:
             return Response("Run not found", status=status.HTTP_400_BAD_REQUEST)
@@ -233,7 +234,7 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
             if not project:
                 return Response("Failed to get project of run {}".format(run.id),
                                 status=status.HTTP_400_BAD_REQUEST)
-            if run.role == ProjectParticipant.Role.COORDINATOR:
+            if run.role == ProjectParticipant.Role.COORDINATOR and update_all:
                 runs = Run.objects.select_for_update().filter(
                     project=project_id, batch=run.batch)
                 if increase_round:
