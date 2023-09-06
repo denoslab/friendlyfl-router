@@ -65,4 +65,10 @@ def get_file_urls(runs, task_seq, round_seq, file_type) -> []:
             prefix = generate_url(run.id, task_seq, round_seq)
             picked_files = [item for item in saved_files if prefix in item]
             urls.extend(picked_files)
+        else:
+            urls = saved_files
     return urls
+
+
+def gen_unique_file_name(file_name, run, cur_seq, cur_round):
+    return '{}-{}-{}-{}'.format(run, cur_seq, cur_round, file_name)
