@@ -20,7 +20,7 @@ from friendlyfl.router.serializers import SiteSerializer, \
     RunRetrieveSerializer
 from friendlyfl.router.serializers import UserSerializer, GroupSerializer
 from friendlyfl.utils import display_util
-from ..utils.file_util import generate_url, get_file_urls, zip_all_files
+from ..utils.file_util import generate_url, get_file_urls, zip_all_files, gen_unique_file_name
 
 
 def validate_uuid4(uuid_string):
@@ -393,16 +393,17 @@ class RunsActionViewSet(ViewSet):
                 mid_artifacts_file_name = None
                 if artifacts_file:
                     artifacts_file_name = fs.save(
-                        artifacts_file.name, artifacts_file)
+                        gen_unique_file_name(artifacts_file.name, run_id, task_seq, round_seq), artifacts_file)
                     if not artifacts_file_name:
                         return Response("Error while saving artifacts", status=status.HTTP_400_BAD_REQUEST)
                 if logs_file:
-                    logs_file_name = fs.save(logs_file.name, logs_file)
+                    logs_file_name = fs.save(gen_unique_file_name(
+                        logs_file.name, run_id, task_seq, round_seq), logs_file)
                     if not logs_file_name:
                         return Response("Error while saving logs", status=status.HTTP_400_BAD_REQUEST)
                 if mid_artifacts_file:
                     mid_artifacts_file_name = fs.save(
-                        mid_artifacts_file.name, mid_artifacts_file)
+                        gen_unique_file_name(mid_artifacts_file.name, run_id, task_seq, round_seq), mid_artifacts_file)
                     if not mid_artifacts_file_name:
                         return Response("Error while saving mid-artifacts", status=status.HTTP_400_BAD_REQUEST)
 
@@ -452,7 +453,7 @@ class RunsActionViewSet(ViewSet):
                         zip_file, content_type='application/zip')
                     response['Content-Disposition'] = f'attachment; filename="{file_type}.zip"'
                     return response
-            return Response("No artifacts found", status=status.HTTP_404_NOT_FOUND)
+            return Response("No files of {} found".format(file_type), status=status.HTTP_404_NOT_FOUND)
         return Response("Run not exist", status=status.HTTP_400_BAD_REQUEST)
 
     @action(detail=False, methods=['PUT'], url_path='update')
