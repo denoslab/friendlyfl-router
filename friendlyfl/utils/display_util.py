@@ -1,12 +1,19 @@
-def sort_runs(runs):
+def sort_runs(runs, site_uid=None):
     merged_runs = {}
 
     for run in runs:
         batch = run['batch']
-        if batch not in merged_runs:
-            merged_runs[batch] = run
+        if site_uid:
+            if site_uid == run['site_uid']:
+                if batch not in merged_runs:
+                    merged_runs[batch] = run
+                else:
+                    merged_runs[batch] = update_run(merged_runs[batch], run)
         else:
-            merged_runs[batch] = update_run(merged_runs[batch], run)
+            if batch not in merged_runs:
+                merged_runs[batch] = run
+            else:
+                merged_runs[batch] = update_run(merged_runs[batch], run)
     sorted_dict = dict(sorted(merged_runs.items(), key=lambda x: x[0]))
     return list(sorted_dict.values())
 

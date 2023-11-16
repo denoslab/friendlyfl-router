@@ -264,6 +264,7 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
         """
         Look up runs by project id.
         """
+        site_uid = request.GET.get('site_uid', None)
         project_id = request.GET.get('project', None)
         batch_id = request.GET.get('batch_id', None)
         if batch_id:
@@ -272,7 +273,7 @@ class RunViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.List
         else:
             queryset = Run.objects.filter(project_id=project_id)
         serializer = RunSerializer(queryset, many=True)
-        dic = display_util.sort_runs(serializer.data)
+        dic = display_util.sort_runs(serializer.data, site_uid=site_uid)
         return Response(dic)
 
     @action(detail=False, methods=['GET'], url_path='active')
@@ -384,35 +385,42 @@ class RunsActionViewSet(ViewSet):
 
         run = Run.objects.get(id=run_id)
         if run:
-
             url = generate_url(run_id, task_seq, round_seq)
             if url:
                 fs = FileSystemStorage(url)
-                artifacts_file_name = None
-                logs_file_name = None
-                mid_artifacts_file_name = None
                 if artifacts_file:
+                    runs = Run.objects.filter(batch=run.batch).exclude(id=run_id)
+                    if runs:
+                        for r in runs:
+                            u = generate_url(r.id, task_seq, round_seq)
+                            f = FileSystemStorage(u)
+                            af = f.save(
+                                gen_unique_file_name(artifacts_file.name, r.id, task_seq, round_seq),
+                                artifacts_file)
+                            if af:
+                                r.artifacts.append(u + af)
+                                r.save()
                     artifacts_file_name = fs.save(
                         gen_unique_file_name(artifacts_file.name, run_id, task_seq, round_seq), artifacts_file)
                     if not artifacts_file_name:
                         return Response("Error while saving artifacts", status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        run.artifacts.append(url + artifacts_file_name)
+
                 if logs_file:
                     logs_file_name = fs.save(gen_unique_file_name(
                         logs_file.name, run_id, task_seq, round_seq), logs_file)
                     if not logs_file_name:
                         return Response("Error while saving logs", status=status.HTTP_400_BAD_REQUEST)
+                    else:
+                        run.logs.append(url + logs_file_name)
                 if mid_artifacts_file:
                     mid_artifacts_file_name = fs.save(
                         gen_unique_file_name(mid_artifacts_file.name, run_id, task_seq, round_seq), mid_artifacts_file)
                     if not mid_artifacts_file_name:
                         return Response("Error while saving mid-artifacts", status=status.HTTP_400_BAD_REQUEST)
-
-                if artifacts_file_name:
-                    run.artifacts.append(url + artifacts_file_name)
-                if logs_file_name:
-                    run.logs.append(url + logs_file_name)
-                if mid_artifacts_file_name:
-                    run.middle_artifacts.append(url + mid_artifacts_file_name)
+                    else:
+                        run.middle_artifacts.append(url + mid_artifacts_file_name)
                 run.save()
                 return Response(status=status.HTTP_200_OK)
         return Response("No run found", status=status.HTTP_400_BAD_REQUEST)
