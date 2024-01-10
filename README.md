@@ -354,3 +354,6 @@ python3 manage.py createsuperuser
 
 6. Testing the connection. Visit http://localhost:8000/friendlyfl/api/v1/ if the service port is configured as `8000`.
 
+## Acknowledgement
+
+Na Li, Meng Zhai, Lei Cai, and Leo Wei contributed to the design and implementation of this system.
