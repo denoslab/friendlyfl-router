@@ -1,0 +1,56 @@
+name: Friendlyfl Router Workflow
+
+on:
+  push:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  setup-and-run-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres
+        ports:
+          - 5432:5432
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: UCalgary123
+          POSTGRES_DB: friendlyfl-router
+    env:
+      DATABASE_HOST: 127.0.0.1
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Python (v3.10.10)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10.10'
+    - name: Setup poetry
+      uses: abatilo/actions-poetry@v3
+      with:
+        python-version: '3.10.10'
+    - name: Install dependencies and Migrate
+      run: |
+        python3 -m venv .venv
+        source .venv/bin/activate
+        poetry install
+        python3 manage.py migrate
+        deactivate
+    - name: Run Tests
+      run: |
+        source .venv/bin/activate
+        python3 manage.py test
+        deactivate
+
+  run-router-services:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create external docker network
+        run: docker network create friendlyfl-controller_network
+      - name: Build images
+        run: docker-compose build
+      - name: Run services
+        run: docker-compose up -d
+
+
