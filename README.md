@@ -349,7 +349,7 @@ docker-compose up -d postgres
    the username and password for configuring the friendlyfl-controller.
 
 ```shell
-python3 manage.py createsuperuser
+poetry run python3 manage.py createsuperuser
 ```
 
 6. Testing the connection. Visit http://localhost:8000/friendlyfl/api/v1/ if the service port is configured as `8000`.
